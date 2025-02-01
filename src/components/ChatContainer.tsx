@@ -158,21 +158,15 @@ const ChatContainer: React.FC = () => {
 
   return (
     <div className="flex h-screen flex-col bg-white relative">
-      {/* Header sin fondo gris */}
-      <div className="border-b px-4 py-3 flex justify-center items-center">
-        <h1 className="text-lg font-semibold uppercase text-center text-gray-700">
-          Bienvenido al chat bot de prueba
-        </h1>
+      <div className="border-b bg-white px-4 py-3 flex justify-between items-center">
+        <h1 className="text-lg font-semibold text-center uppercase">ChatBot</h1>
+        <button 
+          className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
+          onClick={handleClearChat}
+        >
+          Limpiar
+        </button>
       </div>
-
-      {/* Botón "Limpiar" en la esquina superior derecha */}
-      <button 
-        className="absolute top-2 right-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
-        onClick={handleClearChat}
-      >
-        Limpiar
-      </button>
-
       {showWaitMessage && (
         <div className="absolute inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50">
           <div className="bg-gray-800 text-white p-6 rounded-md shadow-lg flex items-center space-x-4">
