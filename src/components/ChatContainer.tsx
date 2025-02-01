@@ -43,7 +43,7 @@ const FUN_RESPONSES = [
 // Palabras clave para detectar el contexto de la conversación
 const KEYWORDS_GREETING = ["hola", "saludos", "buenos días", "buenas", "buen día", "hello", "hi","mucho gusto"];
 const KEYWORDS_EMPATHY = ["triste", "enojado", "deprimido", "mal", "feliz", "entusiasmado"];
-const KEYWORDS_FUN = ["chiste", "diversión", "joke", "risa", "payaso"];
+const KEYWORDS_FUN = ["chiste", "diversión", "joke", "risa", "payaso", "divertido"];
 
 // Función para generar una respuesta aleatoria con emoji
 const getRandomEmojiResponse = (): string => {
