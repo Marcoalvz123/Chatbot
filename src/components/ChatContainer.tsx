@@ -222,7 +222,6 @@ const ChatContainer: React.FC = () => {
       return;
     }
 
-    // Respuesta genérica
     const processingMessage = addProcessingMessage();
     const newMessages = [...messages, userMessage, processingMessage];
     setMessages(newMessages);
