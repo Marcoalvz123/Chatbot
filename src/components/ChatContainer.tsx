@@ -13,7 +13,7 @@ interface Message {
 
 const MESSAGES_PER_PAGE = 15; 
 const BOT_RESPONSES = [
-  "Veré como puedo ayudarte.",
+  "Hola, soy un chatbot de prueba",
   "Eso suena interesante, ¡Cuentame más!",
   "Entiendo, ¿Podrías darme más detalles?",
   "Me gusta lo que oigo, ¡Dime más!",
