@@ -11,23 +11,29 @@ interface MessageData {
 interface MessageListProps {
   messages: MessageData[];
   onLoadMore: () => void;
+  containerRef: React.RefObject<HTMLDivElement>;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, onLoadMore }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, onLoadMore, containerRef }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (containerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
+      if (isAtBottom) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, containerRef]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-    if (scrollTop === 0 && scrollHeight > clientHeight) {
+    if (scrollTop < 10 && scrollHeight > clientHeight) {
       onLoadMore();
     }
   };

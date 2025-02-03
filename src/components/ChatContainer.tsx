@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import localforage from 'localforage'; // Biblioteca para almacenamiento local
-import MessageList from './MessageList'; // Componente que muestra la lista de mensajes
-import MessageInput from './MessageInput'; // Componente para ingresar nuevos mensajes
+import React, { useEffect, useRef, useState } from 'react';
+import localforage from 'localforage'; 
+import MessageList from './MessageList'; 
+import MessageInput from './MessageInput'; 
 
 interface Message {
   id: string;
@@ -10,8 +10,8 @@ interface Message {
   isBot: boolean;
 }
 
-// Configuración de mensajes
-const MESSAGES_PER_PAGE = 20; // Número de mensajes a mostrar por página
+
+const MESSAGES_PER_PAGE = 15; 
 const BOT_RESPONSES = [
   "Veré como puedo ayudarte.",
   "Eso suena interesante, ¡Cuentame más!",
@@ -21,7 +21,6 @@ const BOT_RESPONSES = [
   "¡Gracias por conversar conmigo!",
 ];
 
-// Respuestas predeterminadas según el contexto de la conversación
 const GREETING_RESPONSES = [
   "¡Hola! ¿Cómo estás?👋",
   "¡Hola! ¿En qué puedo ayudarte hoy?👀",
@@ -40,49 +39,68 @@ const FUN_RESPONSES = [
   "¡A veces sólo hace falta reír para sentirte mejor! 😂",
 ];
 
-// Palabras clave para detectar el contexto de la conversación
-const KEYWORDS_GREETING = ["hola", "saludos", "buenos días", "buenas", "buen día", "hello", "hi","mucho gusto"];
+const KEYWORDS_GREETING = ["hola", "saludos", "buenos días", "buenas", "buen día", "hello", "hi", "mucho gusto"];
 const KEYWORDS_EMPATHY = ["triste", "enojado", "deprimido", "mal", "feliz", "entusiasmado"];
 const KEYWORDS_FUN = ["chiste", "diversión", "joke", "risa", "payaso", "divertido"];
 
-// Función para generar una respuesta aleatoria con emoji
+
 const getRandomEmojiResponse = (): string => {
   const emojiResponses = ['👍', '😊', '😂', '🙌', '🎉'];
   return emojiResponses[Math.floor(Math.random() * emojiResponses.length)];
 };
 
 const ChatContainer: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]); // Estado para los mensajes
-  const [page, setPage] = useState(1); // Página actual para cargar mensajes antiguos
-  const [isProcessing, setIsProcessing] = useState(false); // Estado para saber si el bot está procesando
-  const [showWaitMessage, setShowWaitMessage] = useState(false); // Estado para mostrar mensaje de espera
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [page, setPage] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showWaitMessage, setShowWaitMessage] = useState(false);
 
-  // Cargar los mensajes al inicio
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  };
+
+  
   useEffect(() => {
     loadMessages();
   }, []);
 
-  // Función para cargar mensajes desde localforage (almacenamiento local)
+  
+  useEffect(() => {
+    
+    if (page === 1 && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
+    }
+  }, [messages, page]);
+
+  
   const loadMessages = async () => {
     const storedMessages = await localforage.getItem<Message[]>('chatMessages');
     if (storedMessages) {
-      setMessages(storedMessages.slice(-MESSAGES_PER_PAGE)); // Cargar solo los últimos 20 mensajes
+      
+      setMessages(storedMessages.slice(-MESSAGES_PER_PAGE));
     }
   };
 
-  // Función para guardar mensajes en el almacenamiento local
+  
   const saveMessages = async (newMessages: Message[]) => {
     await localforage.setItem('chatMessages', newMessages);
   };
 
-  // Función para manejar el envío de un nuevo mensaje
+  
   const handleSendMessage = async (content: string) => {
     if (isProcessing) {
-      setShowWaitMessage(true); // Muestra mensaje de espera si el bot está procesando
+      setShowWaitMessage(true);
       return;
     }
 
-    // Crear mensaje del usuario
     const userMessage: Message = {
       id: Date.now().toString(),
       content,
@@ -90,32 +108,34 @@ const ChatContainer: React.FC = () => {
       isBot: false,
     };
 
-    // Verificar si el mensaje solo contiene un emoji
-    const emojiOnlyPattern = /^[\p{Emoji}\u200B]+$/gu;
-    const isEmojiOnly = emojiOnlyPattern.test(content);
-
     let botMessage: Message;
+    const lowerContent = content.toLowerCase();
+    const containsGreeting = KEYWORDS_GREETING.some(keyword => lowerContent.includes(keyword));
+    const containsEmpathy = KEYWORDS_EMPATHY.some(keyword => lowerContent.includes(keyword));
+    const containsFun = KEYWORDS_FUN.some(keyword => lowerContent.includes(keyword));
 
-    // Detectar el tipo de mensaje (saludo, empatía, diversión)
-    const containsGreeting = KEYWORDS_GREETING.some(keyword => content.toLowerCase().includes(keyword));
-    const containsEmpathy = KEYWORDS_EMPATHY.some(keyword => content.toLowerCase().includes(keyword));
-    const containsFun = KEYWORDS_FUN.some(keyword => content.toLowerCase().includes(keyword));
-
-    // Responder con saludo si el mensaje contiene palabras clave de saludo
-    if (containsGreeting) {
-      const processingMessage: Message = {
+    
+    const addProcessingMessage = (): Message => {
+      return {
         id: (Date.now() + 1).toString(),
         content: "...",
         timestamp: Date.now() + 1000,
         isBot: true,
       };
+    };
 
-      // Actualizar mensajes con el mensaje del usuario y el mensaje de procesamiento
+    if (containsGreeting) {
+      const processingMessage = addProcessingMessage();
       const newMessages = [...messages, userMessage, processingMessage];
       setMessages(newMessages);
       saveMessages(newMessages);
+      setIsProcessing(true);
 
-      setIsProcessing(true); // Cambiar estado a "procesando"
+      
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
+
       setTimeout(() => {
         botMessage = {
           id: (Date.now() + 2).toString(),
@@ -124,32 +144,31 @@ const ChatContainer: React.FC = () => {
           isBot: true,
         };
 
-        // Actualizar los mensajes con la respuesta del bot
         const updatedMessages = newMessages.filter((msg) => msg.id !== processingMessage.id);
         updatedMessages.push(botMessage);
-
         setMessages(updatedMessages);
         saveMessages(updatedMessages);
-        setIsProcessing(false); // Terminar procesamiento
-      }, Math.random() * (3000 - 1000) + 1000); // Esperar entre 1 y 3 segundos antes de responder
+        setIsProcessing(false);
+
+        
+        setTimeout(() => {
+          scrollToBottom();
+        }, 0);
+      }, Math.random() * (3000 - 1000) + 1000);
       return;
     }
 
-    // Responder con mensaje de empatía si el mensaje contiene palabras clave de empatía
     if (containsEmpathy) {
-      const processingMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "...",
-        timestamp: Date.now() + 1000,
-        isBot: true,
-      };
-
-      // Actualizar mensajes con el mensaje del usuario y el mensaje de procesamiento
+      const processingMessage = addProcessingMessage();
       const newMessages = [...messages, userMessage, processingMessage];
       setMessages(newMessages);
       saveMessages(newMessages);
-
       setIsProcessing(true);
+
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
+
       setTimeout(() => {
         botMessage = {
           id: (Date.now() + 2).toString(),
@@ -160,28 +179,28 @@ const ChatContainer: React.FC = () => {
 
         const updatedMessages = newMessages.filter((msg) => msg.id !== processingMessage.id);
         updatedMessages.push(botMessage);
-
         setMessages(updatedMessages);
         saveMessages(updatedMessages);
         setIsProcessing(false);
+
+        setTimeout(() => {
+          scrollToBottom();
+        }, 0);
       }, Math.random() * (3000 - 1000) + 1000);
       return;
     }
 
-    // Responder con mensaje divertido si el mensaje contiene palabras clave de diversión
     if (containsFun) {
-      const processingMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "...",
-        timestamp: Date.now() + 1000,
-        isBot: true,
-      };
-
+      const processingMessage = addProcessingMessage();
       const newMessages = [...messages, userMessage, processingMessage];
       setMessages(newMessages);
       saveMessages(newMessages);
-
       setIsProcessing(true);
+
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
+
       setTimeout(() => {
         botMessage = {
           id: (Date.now() + 2).toString(),
@@ -192,41 +211,42 @@ const ChatContainer: React.FC = () => {
 
         const updatedMessages = newMessages.filter((msg) => msg.id !== processingMessage.id);
         updatedMessages.push(botMessage);
-
         setMessages(updatedMessages);
         saveMessages(updatedMessages);
         setIsProcessing(false);
+
+        setTimeout(() => {
+          scrollToBottom();
+        }, 0);
       }, Math.random() * (3000 - 1000) + 1000);
       return;
     }
 
-    // Responder con mensaje genérico si no se encuentra una coincidencia
-    const processingMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      content: "...",
-      timestamp: Date.now() + 1000,
-      isBot: true,
-    };
-
+    // Respuesta genérica
+    const processingMessage = addProcessingMessage();
     const newMessages = [...messages, userMessage, processingMessage];
     setMessages(newMessages);
     saveMessages(newMessages);
-
     setIsProcessing(true);
+
     setTimeout(() => {
-      if (isEmojiOnly) {
-        const randomEmojiResponse = getRandomEmojiResponse();
+      scrollToBottom();
+    }, 0);
+
+    setTimeout(() => {
+      
+      const emojiOnlyPattern = /^[\p{Emoji}\u200B]+$/gu;
+      if (emojiOnlyPattern.test(content)) {
         botMessage = {
           id: (Date.now() + 2).toString(),
-          content: randomEmojiResponse,
+          content: getRandomEmojiResponse(),
           timestamp: Date.now() + 2000,
           isBot: true,
         };
       } else {
-        const randomResponse = BOT_RESPONSES[Math.floor(Math.random() * BOT_RESPONSES.length)];
         botMessage = {
           id: (Date.now() + 2).toString(),
-          content: randomResponse,
+          content: BOT_RESPONSES[Math.floor(Math.random() * BOT_RESPONSES.length)],
           timestamp: Date.now() + 2000,
           isBot: true,
         };
@@ -234,29 +254,47 @@ const ChatContainer: React.FC = () => {
 
       const updatedMessages = newMessages.filter((msg) => msg.id !== processingMessage.id);
       updatedMessages.push(botMessage);
-
       setMessages(updatedMessages);
       saveMessages(updatedMessages);
       setIsProcessing(false);
+
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
     }, Math.random() * (3000 - 1000) + 1000);
   };
 
-  // Función para cargar más mensajes cuando el usuario se desplace hacia abajo
+  
   const handleLoadMore = async () => {
+    
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    
+    const previousScrollHeight = container.scrollHeight;
+
     const storedMessages = await localforage.getItem<Message[]>('chatMessages');
     if (storedMessages) {
-      const startIndex = Math.max(0, storedMessages.length - (page + 1) * MESSAGES_PER_PAGE);
+      const startIndex = Math.max(
+        0,
+        storedMessages.length - (page + 1) * MESSAGES_PER_PAGE
+      );
+      
       setMessages(storedMessages.slice(startIndex));
-      setPage(page + 1);
+      setPage(prevPage => prevPage + 1);
+
+      
+      setTimeout(() => {
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop = newScrollHeight - previousScrollHeight;
+      }, 0);
     }
   };
 
-  // Función para cerrar el mensaje de espera
   const handleCloseWaitMessage = () => {
     setShowWaitMessage(false);
   };
 
-  // Función para limpiar el chat
   const handleClearChat = () => {
     setMessages([]);
     saveMessages([]);
@@ -264,7 +302,6 @@ const ChatContainer: React.FC = () => {
 
   return (
     <div className="flex h-screen flex-col bg-white relative">
-      {/* Encabezado del chat */}
       <div className="border-b bg-white px-4 py-3 flex justify-between items-center">
         <h1 className="text-lg font-semibold text-center uppercase">ChatBot</h1>
         <button 
@@ -275,23 +312,26 @@ const ChatContainer: React.FC = () => {
         </button>
       </div>
 
-      {/* Mensaje de espera */}
       {showWaitMessage && (
         <div className="absolute inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50">
           <div className="bg-gray-800 text-white p-6 rounded-md shadow-lg flex items-center space-x-4">
             <span>Por favor espera la respuesta del bot antes de enviar otro mensaje.</span>
             <button 
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md" 
-              onClick={handleCloseWaitMessage}>
+              onClick={handleCloseWaitMessage}
+            >
               OK
             </button>
           </div>
         </div>
       )}
 
-      {/* Componente de lista de mensajes */}
-      <MessageList messages={messages} onLoadMore={handleLoadMore} />
-      {/* Componente para ingresar nuevo mensaje */}
+      <MessageList
+        messages={messages}
+        onLoadMore={handleLoadMore}
+        containerRef={chatContainerRef}
+      />
+
       <MessageInput onSendMessage={handleSendMessage} />
     </div>
   );
