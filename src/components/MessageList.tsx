@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Message from './Message';
 
 interface MessageData {
@@ -16,32 +16,21 @@ interface MessageListProps {
 const MessageList: React.FC<MessageListProps> = ({ messages, onLoadMore }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isUserAtBottom, setIsUserAtBottom] = useState(true);
 
-  // Función para hacer scroll hasta la parte inferior
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Controlar cuándo el usuario está en la parte inferior
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-
-    // Si el usuario llega a la parte superior, cargar más mensajes pero NO forzar el scroll hacia abajo
-    if (scrollTop === 0) {
+    if (scrollTop === 0 && scrollHeight > clientHeight) {
       onLoadMore();
     }
-
-    // Determinar si el usuario está en la parte inferior (con un margen de 50px)
-    setIsUserAtBottom(scrollHeight - (scrollTop + clientHeight) < 50);
   };
-
-  // Si llega un nuevo mensaje y el usuario NO está explorando mensajes viejos, hacer scroll automáticamente al final
-  useEffect(() => {
-    if (isUserAtBottom) {
-      scrollToBottom();
-    }
-  }, [messages, isUserAtBottom]); // ✅ Se agrega isUserAtBottom como dependencia
 
   return (
     <div
